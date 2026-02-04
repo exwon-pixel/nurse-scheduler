@@ -6,7 +6,39 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import sys
+import os
 from pathlib import Path
+
+# ==========================================
+# 핵심 수정: 폴더 경로 강제 연결
+# ==========================================
+# 현재 app.py가 있는 위치를 알아내서 src와 utils 폴더를 파이썬에게 알려줍니다.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(current_dir, 'src'))
+sys.path.append(os.path.join(current_dir, 'utils'))
+
+# 이제 파이썬이 폴더 안을 볼 수 있으므로, 파일명만 불러도 됩니다.
+try:
+    # 1. 폴더 안의 파일들을 직접 찾는 시도
+    from data_loader import DataLoader
+    from scheduler import NurseScheduler
+    from validator import ScheduleValidator
+    from visualizer import ScheduleVisualizer
+except ImportError:
+    try:
+        # 2. 혹시 몰라 '폴더명.파일명'으로 찾는 시도 (이중 안전장치)
+        from utils.data_loader import DataLoader
+        from src.scheduler import NurseScheduler
+        from src.validator import ScheduleValidator
+        from src.visualizer import ScheduleVisualizer
+    except ImportError as e:
+        st.error(f"❌ 모듈 로딩 실패: {e}")
+        st.error("폴더 구조를 확인해주세요. src 폴더 안에 scheduler.py가, utils 폴더 안에 data_loader.py가 있어야 합니다.")
+        st.stop()
+
+# ==========================================
+# 아래부터는 기존 코드 그대로...
+# ==========================================
 
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
@@ -146,4 +178,5 @@ elif menu == "3. 결과 대시보드":
             for d, s in enumerate(n['schedule']):
                 rows.append({'Date': res['dates'][d]['date'], 'Name': n['name'], 'Shift': s})
         csv = pd.DataFrame(rows).to_csv(index=False).encode('utf-8-sig')
+
         st.download_button("CSV 다운로드", csv, "schedule.csv", "text/csv")
